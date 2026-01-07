@@ -1,35 +1,21 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import Login from "./pages/Login";
+import { useAuth } from "./auth/AuthContext";
 
-function App() {
-  const [count, setCount] = useState(0)
+export default function App() {
+  const { user, loading, logout } = useAuth();
+
+  if (loading) return <p className="p-6">Loading...</p>;
+
+  if (!user) return <Login />;
 
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
+    <div className="p-6">
+      <p>
+        Hoş geldin 👋 <b>{user.role}</b>
       </p>
-    </>
-  )
+      <button onClick={logout} className="mt-4 rounded bg-red-500 px-4 py-2 text-white">
+        Logout
+      </button>
+    </div>
+  );
 }
-
-export default App
