@@ -1,21 +1,52 @@
+import { Routes, Route } from "react-router-dom";
 import Login from "./pages/Login";
-import { useAuth } from "./auth/AuthContext";
+import Home from "./pages/Home";
+import Book from "./pages/Book";
+import MyAppointments from "./pages/MyAppointments";
+import BarberDashboard from "./pages/BarberDashboard";
+import ProtectedRoute from "./components/ProtectedRoute";
+import RoleRoute from "./components/RoleRoute";
 
 export default function App() {
-  const { user, loading, logout } = useAuth();
-
-  if (loading) return <p className="p-6">Loading...</p>;
-
-  if (!user) return <Login />;
-
   return (
-    <div className="p-6">
-      <p>
-        Hoş geldin 👋 <b>{user.role}</b>
-      </p>
-      <button onClick={logout} className="mt-4 rounded bg-red-500 px-4 py-2 text-white">
-        Logout
-      </button>
-    </div>
+    <Routes>
+      <Route path="/login" element={<Login />} />
+
+      <Route
+        path="/"
+        element={
+          <ProtectedRoute>
+            <Home />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/book"
+        element={
+          <ProtectedRoute>
+            <Book />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/my"
+        element={
+          <ProtectedRoute>
+            <MyAppointments />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/barber"
+        element={
+          <RoleRoute role="BARBER">
+            <BarberDashboard />
+          </RoleRoute>
+        }
+      />
+    </Routes>
   );
 }
