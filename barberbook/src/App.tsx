@@ -6,47 +6,52 @@ import MyAppointments from "./pages/MyAppointments";
 import BarberDashboard from "./pages/BarberDashboard";
 import ProtectedRoute from "./components/ProtectedRoute";
 import RoleRoute from "./components/RoleRoute";
+import Navbar from "./components/Navbar";
 
 export default function App() {
   return (
-    <Routes>
-      <Route path="/login" element={<Login />} />
+    <div className="min-h-screen bg-gray-50">
+      <Navbar />
 
-      <Route
-        path="/"
-        element={
-          <ProtectedRoute>
-            <Home />
-          </ProtectedRoute>
-        }
-      />
+      <Routes>
+        <Route path="/login" element={<Login />} />
 
-      <Route
-        path="/book"
-        element={
-          <ProtectedRoute>
-            <Book />
-          </ProtectedRoute>
-        }
-      />
+        <Route
+          path="/"
+          element={
+            <ProtectedRoute>
+              <Home />
+            </ProtectedRoute>
+          }
+        />
 
-      <Route
-        path="/my"
-        element={
-          <ProtectedRoute>
-            <MyAppointments />
-          </ProtectedRoute>
-        }
-      />
+        <Route
+          path="/book"
+          element={
+            <ProtectedRoute>
+              <Book />
+            </ProtectedRoute>
+          }
+        />
 
-      <Route
-        path="/barber"
-        element={
-          <RoleRoute role="BARBER">
-            <BarberDashboard />
-          </RoleRoute>
-        }
-      />
-    </Routes>
+        <Route
+          path="/my"
+          element={
+            <ProtectedRoute>
+              <MyAppointments />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/barber"
+          element={
+            <RoleRoute role="BARBER">
+              <BarberDashboard />
+            </RoleRoute>
+          }
+        />
+      </Routes>
+    </div>
   );
 }
