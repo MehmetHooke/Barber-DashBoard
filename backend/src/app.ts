@@ -6,6 +6,7 @@ import serviceRoutes from "./routes/service.routes.js";
 import workingHoursRoutes from "./routes/workingHours.routes.js";
 import availabilityRoutes from "./routes/availability.routes.js";
 import appointmentRoutes from "./routes/appointment.routes.js";
+import analyticsRoutes from "./routes/analytics.routes.js";
 
 dotenv.config();
 
@@ -24,5 +25,7 @@ app.use("/working-hours", workingHoursRoutes);
 app.use("/availability", availabilityRoutes);
 
 app.use("/appointments", appointmentRoutes);
+
+app.use("/analytics", analyticsRoutes);
 
 app.use((_req, res) => res.status(404).json({ message: "Route not found" }));

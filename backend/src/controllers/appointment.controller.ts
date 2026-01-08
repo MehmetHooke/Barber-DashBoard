@@ -63,6 +63,7 @@ export async function createAppointment(req: AuthRequest, res: Response) {
       endAt: candidateEnd,
       status: "PENDING",
       note,
+      priceSnapshot: service.price ?? null,
     },
     include: {
       service: { select: { id: true, name: true, durationMin: true, price: true } },

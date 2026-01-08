@@ -1,10 +1,12 @@
 import { Link, NavLink } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
+import { ModeToggle } from "./mode-toggle";
 
 function navClass({ isActive }: { isActive: boolean }) {
   return [
-    "rounded-lg px-3 py-2 text-sm",
-    isActive ? "bg-black text-white" : "text-gray-700 hover:bg-gray-100",
+    "rounded-lg px-3 py-2 text-sm transition-colors",
+    "text-muted-foreground hover:text-foreground hover:bg-primary",
+    isActive ? "bg-primary text-primary-foreground" : "",
   ].join(" ");
 }
 
@@ -12,9 +14,12 @@ export default function Navbar() {
   const { user, loading, logout } = useAuth();
 
   return (
-    <header className="border-b bg-white">
-      <div className="mx-auto flex max-w-5xl items-center justify-between p-4">
-        <Link to="/" className="font-semibold">
+    <header className="sticky top-0 z-50 border-b border-border bg-background backdrop-blur">
+      <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-4">
+        <Link
+          to="/"
+          className="font-semibold tracking-tight text-foreground hover:opacity-90"
+        >
           BarberBook
         </Link>
 
@@ -44,9 +49,14 @@ export default function Navbar() {
                   </NavLink>
                 )}
 
+                <ModeToggle />
+
                 <button
                   onClick={logout}
-                  className="ml-2 rounded-lg bg-red-500 px-3 py-2 text-sm text-white"
+                  className={[
+                    "ml-2 rounded-lg px-3 py-2 text-sm transition-colors",
+                    "bg-destructive text-destructive-foreground hover:opacity-70",
+                  ].join(" ")}
                 >
                   Logout
                 </button>

@@ -50,14 +50,16 @@ model WorkingHour {
 }
 
 model Appointment {
-  id        String            @id @default(cuid())
-  userId    String
-  serviceId String
-  startAt   DateTime
-  endAt     DateTime
-  status    AppointmentStatus @default(PENDING)
-  note      String?
-  createdAt DateTime          @default(now())
+  id            String            @id @default(cuid())
+  userId        String
+  serviceId     String
+  startAt       DateTime
+  endAt         DateTime
+  status        AppointmentStatus @default(PENDING)
+  note          String?
+  createdAt     DateTime          @default(now())
+
+  priceSnapshot Int?
 
   user    User    @relation(fields: [userId], references: [id])
   service Service @relation(fields: [serviceId], references: [id])
@@ -65,4 +67,5 @@ model Appointment {
   @@index([startAt])
   @@index([userId])
   @@index([serviceId])
+  @@index([status])
 }

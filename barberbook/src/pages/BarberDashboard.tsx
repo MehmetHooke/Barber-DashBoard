@@ -1,163 +1,167 @@
-import { useEffect, useState } from "react";
-import { getWorkingHours, setWorkingHours } from "../api/workingHours";
-import { getServices, type Service } from "../api/services";
-import { createServiceAdmin, updateServiceAdmin } from "../api/adminServices";
-import { getAdminAppointments, updateAppointmentStatus, type AdminAppointment } from "../api/adminAppointments";
+import { useEffect, useMemo, useState } from "react";
+import { getAnalyticsSummary, type AnalyticsRange, type AnalyticsSummary } from "../api/analytics";
+import { updateAppointmentStatus } from "../api/adminAppointments";
 
-const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+import {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+  type ChartConfig,
+} from "@/components/ui/chart";
 
-function minToHHMM(min: number) {
-  const h = String(Math.floor(min / 60)).padStart(2, "0");
-  const m = String(min % 60).padStart(2, "0");
-  return `${h}:${m}`;
+
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { Skeleton } from "@/components/ui/skeleton";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+
+import {
+  ResponsiveContainer,
+  Area,
+  AreaChart,
+  CartesianGrid,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  Tooltip,
+  PieChart,
+  Pie,
+  Cell,
+} from "recharts";
+import ManageServicesDialog from "@/components/ManageServicesDialog";
+
+function currencyTRY(v: number) {
+  return new Intl.NumberFormat("tr-TR", { style: "currency", currency: "TRY", maximumFractionDigits: 0 }).format(v);
 }
-function hhmmToMin(v: string) {
-  const [h, m] = v.split(":").map(Number);
-  return h * 60 + m;
+function percent(v: number) {
+  return `${Math.round(v * 100)}%`;
 }
-function fmtDT(iso: string) {
-  const d = new Date(iso);
-  const yyyy = d.getFullYear();
-  const mm = String(d.getMonth() + 1).padStart(2, "0");
-  const dd = String(d.getDate()).padStart(2, "0");
-  const hh = String(d.getHours()).padStart(2, "0");
-  const mi = String(d.getMinutes()).padStart(2, "0");
-  return `${yyyy}-${mm}-${dd} ${hh}:${mi}`;
+function deltaLabel(d: number) {
+  if (!Number.isFinite(d)) return "0%"; // NaN, Infinity, -Infinity
+  const p = Math.round(d * 100);
+  if (p === 0) return "0%";
+  return p > 0 ? `+${p}%` : `${p}%`;
+}
+
+function statusBadgeVariant(status: string): "default" | "secondary" | "destructive" | "outline" {
+  if (status === "CONFIRMED") return "default";
+  if (status === "PENDING") return "secondary";
+  if (status === "DONE") return "outline";
+  return "destructive"; // CANCELLED
 }
 
 export default function BarberDashboard() {
-  const [tab, setTab] = useState<"hours" | "services" | "appointments">("hours");
+  const [range, setRange] = useState<AnalyticsRange>("30d");
+  const [data, setData] = useState<AnalyticsSummary | null>(null);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  // hours
-  const [hours, setHours] = useState<Record<number, { enabled: boolean; start: string; end: string }>>(() => {
-    const init: any = {};
-    for (let d = 0; d < 7; d++) init[d] = { enabled: false, start: "09:00", end: "18:00" };
-    return init;
-  });
-  const [savingHours, setSavingHours] = useState(false);
-
-  // services
-  const [services, setServicesState] = useState<Service[]>([]);
-  const [loadingServices, setLoadingServices] = useState(false);
-  const [newService, setNewService] = useState({ name: "", durationMin: 30, price: 0 });
-  const [creatingService, setCreatingService] = useState(false);
-
-  // appointments
-  const [appointments, setAppointments] = useState<AdminAppointment[]>([]);
-  const [loadingAppt, setLoadingAppt] = useState(false);
   const [busyApptId, setBusyApptId] = useState<string | null>(null);
 
-  async function loadHours() {
+
+
+  async function load(r: AnalyticsRange) {
+    setLoading(true);
     setError(null);
-    const list = await getWorkingHours();
-    // UI state'e map et
-    const next: any = {};
-    for (let d = 0; d < 7; d++) next[d] = { enabled: false, start: "09:00", end: "18:00" };
 
-    list.forEach((h) => {
-      next[h.dayOfWeek] = {
-        enabled: true,
-        start: minToHHMM(h.startMin),
-        end: minToHHMM(h.endMin),
-      };
-    });
 
-    setHours(next);
-  }
-
-  async function loadServices() {
-    setLoadingServices(true);
-    setError(null);
     try {
-      const list = await getServices();
-      setServicesState(list);
+      const res = await getAnalyticsSummary(r);
+      setData(res);
+
+
+
+
     } catch (e: any) {
-      setError(e?.response?.data?.message ?? "Services yüklenemedi.");
+      setError(e?.response?.data?.message ?? "Analytics yüklenemedi.");
     } finally {
-      setLoadingServices(false);
+      setLoading(false);
     }
   }
+  const revenueChartConfig = {
+    realized: { label: "Gelir", color: "var(--chart-1)" },
+  } satisfies ChartConfig;
 
-  async function loadAppointments() {
-    setLoadingAppt(true);
-    setError(null);
-    try {
-      const list = await getAdminAppointments();
-      setAppointments(list);
-    } catch (e: any) {
-      setError(e?.response?.data?.message ?? "Randevular yüklenemedi.");
-    } finally {
-      setLoadingAppt(false);
-    }
+
+  const trShort = new Intl.DateTimeFormat("tr-TR", { day: "2-digit", month: "short" });
+  const trLong = new Intl.DateTimeFormat("tr-TR", { day: "2-digit", month: "long", year: "numeric" });
+
+  function parseYmdToDate(ymd: string) {
+    // "2026-01-03" -> Date (local)
+    const [y, m, d] = ymd.split("-").map(Number);
+    return new Date(y, m - 1, d);
   }
 
-  useEffect(() => {
-    // ilk açılış
-    loadHours().catch(() => setError("Working hours yüklenemedi."));
-    loadServices();
-    loadAppointments();
-  }, []);
-
-  async function handleSaveHours() {
-    setSavingHours(true);
-    setError(null);
-    try {
-      const payload = Object.entries(hours)
-        .filter(([_, v]) => v.enabled)
-        .map(([day, v]) => ({
-          dayOfWeek: Number(day),
-          startMin: hhmmToMin(v.start),
-          endMin: hhmmToMin(v.end),
-        }));
-
-      await setWorkingHours(payload);
-      await loadHours();
-      alert("Working hours saved");
-    } catch (e: any) {
-      setError(e?.response?.data?.message ?? "Kaydedilemedi.");
-    } finally {
-      setSavingHours(false);
-    }
+  function formatShortTRDate(ymd: string) {
+    return trShort.format(parseYmdToDate(ymd)); // "03 Oca"
   }
 
-  async function handleCreateService() {
-    if (!newService.name.trim()) return;
-
-    setCreatingService(true);
-    setError(null);
-    try {
-      await createServiceAdmin({
-        name: newService.name.trim(),
-        durationMin: Number(newService.durationMin),
-        price: Number(newService.price),
-      });
-      setNewService({ name: "", durationMin: 30, price: 0 });
-      await loadServices();
-      alert("Service created");
-    } catch (e: any) {
-      setError(e?.response?.data?.message ?? "Service oluşturulamadı.");
-    } finally {
-      setCreatingService(false);
-    }
+  function formatLongTRDate(ymd: string) {
+    return trLong.format(parseYmdToDate(ymd)); // "03 Ocak 2026"
   }
 
-  async function toggleServiceActive(s: Service) {
-    setError(null);
-    try {
-      await updateServiceAdmin(s.id, { isActive: !s.isActive });
-      await loadServices();
-    } catch (e: any) {
-      setError(e?.response?.data?.message ?? "Güncellenemedi.");
-    }
+
+  function rangeLabel(r: AnalyticsRange) {
+    if (r === "today") return "Today";
+    if (r === "7d") return "Last 7 days";
+    return "Last 30 days";
   }
 
-  async function changeAppointmentStatus(id: string, status: "CONFIRMED" | "CANCELLED" | "DONE") {
+  const revenueChartData = useMemo(() => {
+    if (!data) return [];
+    const base = data.series.revenueDaily;
+    if (range === "30d") return base;
+    if (range === "7d") return base.slice(-7);
+    return base.slice(-1);
+  }, [data, range]);
+
+
+  const rangeRealizedRevenue = useMemo(() => {
+    if (!data) return 0;
+    return revenueChartData.reduce((sum, x) => sum + (x.realized ?? 0), 0);
+  }, [data, revenueChartData]);
+
+
+
+  const rangeAppointments = useMemo(() => {
+    if (!data) return 0;
+    // statusCounts içindeki tüm statülerin toplamı = seçili aralık randevu sayısı
+    return Object.values(data.series.statusCounts ?? {}).reduce((s, n) => s + (n ?? 0), 0);
+  }, [data]);
+
+
+  const STATUS_COLORS: Record<string, string> = {
+    PENDING: "#f59e0b",   // amber-500
+    CONFIRMED: "#3b82f6", // blue-500
+    DONE: "#22c55e",      // green-500
+    CANCELLED: "#ef4444", // red-500
+  };
+  function statusColor(status: string) {
+    return STATUS_COLORS[status] ?? "#94a3b8"; // slate-400 fallback
+  }
+
+
+  async function changeStatus(id: string, status: "CONFIRMED" | "DONE" | "CANCELLED") {
+    if (status === "CANCELLED") {
+      const ok = confirm("Randevuyu iptal etmek istiyor musun?");
+      if (!ok) return;
+    }
+
     setBusyApptId(id);
     setError(null);
     try {
       await updateAppointmentStatus(id, status);
-      await loadAppointments();
+      await load(range); // dashboard refresh
     } catch (e: any) {
       setError(e?.response?.data?.message ?? "Status güncellenemedi.");
     } finally {
@@ -165,233 +169,340 @@ export default function BarberDashboard() {
     }
   }
 
-  const tabButton = (key: typeof tab, label: string) => (
-    <button
-      onClick={() => setTab(key)}
-      className={[
-        "rounded-lg px-3 py-2 text-sm",
-        tab === key ? "bg-black text-white" : "border hover:bg-gray-50",
-      ].join(" ")}
-    >
-      {label}
-    </button>
-  );
+
+  useEffect(() => {
+    load(range);
+  }, [range]);
+
+  const statusPieData = useMemo(() => {
+    const counts = data?.series.statusCounts ?? {};
+    const keys = Object.keys(counts);
+    return keys.map((k) => ({ name: k, value: counts[k] }));
+  }, [data]);
+
+  const hasAnyData =
+    !!data &&
+    (data.kpis.todayAppointments > 0 ||
+      data.kpis.todayRevenue > 0 ||
+      data.series.revenueDaily.some((x) => (x.planned ?? 0) > 0 || (x.realized ?? 0) > 0)
+    );
 
   return (
-    <div className="mx-auto max-w-5xl p-6">
-      <div className="rounded-2xl bg-white p-6 shadow">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h1 className="text-xl font-semibold">Barber Dashboard</h1>
-            <p className="mt-1 text-sm text-gray-600">Working hours • Services • Appointments</p>
-          </div>
-
-          <div className="flex gap-2">
-            {tabButton("hours", "Working Hours")}
-            {tabButton("services", "Services")}
-            {tabButton("appointments", "Appointments")}
-          </div>
+    <div className="mx-auto max-w-6xl p-6">
+      {/* Header */}
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">Dashboard</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Gelir, randevular ve günlük operasyonlar.
+          </p>
         </div>
 
-        {error && (
-          <div className="mt-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
-            {error}
-          </div>
-        )}
+        <div className="flex flex-wrap items-center gap-2">
+          <ToggleGroup
+            type="single"
+            value={range}
+            onValueChange={(v) => v && setRange(v as AnalyticsRange)}
+          >
+            <ToggleGroupItem value="today">Today</ToggleGroupItem>
+            <ToggleGroupItem value="7d">7d</ToggleGroupItem>
+            <ToggleGroupItem value="30d">30d</ToggleGroupItem>
+          </ToggleGroup>
 
-        {/* HOURS TAB */}
-        {tab === "hours" && (
-          <div className="mt-6">
-            <div className="space-y-3">
-              {Array.from({ length: 7 }).map((_, d) => {
-                const v = hours[d];
-                return (
-                  <div key={d} className="flex flex-wrap items-center gap-3 rounded-xl border p-3">
-                    <label className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        checked={v.enabled}
-                        onChange={(e) =>
-                          setHours((prev) => ({
-                            ...prev,
-                            [d]: { ...prev[d], enabled: e.target.checked },
-                          }))
-                        }
-                      />
-                      <span className="w-12 text-sm font-medium">{dayNames[d]}</span>
-                    </label>
+          <Button variant="outline" onClick={() => load(range)} disabled={loading}>
+            Refresh
+          </Button>
 
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="time"
-                        value={v.start}
-                        disabled={!v.enabled}
-                        onChange={(e) =>
-                          setHours((prev) => ({
-                            ...prev,
-                            [d]: { ...prev[d], start: e.target.value },
-                          }))
-                        }
-                        className="rounded-lg border p-2 text-sm disabled:opacity-40"
-                      />
-                      <span className="text-sm text-gray-500">to</span>
-                      <input
-                        type="time"
-                        value={v.end}
-                        disabled={!v.enabled}
-                        onChange={(e) =>
-                          setHours((prev) => ({
-                            ...prev,
-                            [d]: { ...prev[d], end: e.target.value },
-                          }))
-                        }
-                        className="rounded-lg border p-2 text-sm disabled:opacity-40"
-                      />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+          <Button onClick={() => alert("V2: Barber creates appointment")}>New appointment</Button>
+          <ManageServicesDialog onChanged={() => load(range)} />
+        </div>
+      </div>
 
-            <div className="mt-4 flex justify-end">
-              <button
-                onClick={handleSaveHours}
-                disabled={savingHours}
-                className="rounded-lg bg-black px-4 py-2 text-white disabled:opacity-40"
-              >
-                {savingHours ? "Saving..." : "Save"}
-              </button>
-            </div>
-          </div>
-        )}
+      {error && (
+        <Card className="mt-6 border-destructive/30">
+          <CardContent className="p-4 text-sm text-destructive">{error}</CardContent>
+        </Card>
+      )}
 
-        {/* SERVICES TAB */}
-        {tab === "services" && (
-          <div className="mt-6">
-            <div className="rounded-xl border p-4">
-              <div className="grid gap-3 md:grid-cols-3">
-                <input
-                  className="rounded-lg border p-2 text-sm"
-                  placeholder="Service name"
-                  value={newService.name}
-                  onChange={(e) => setNewService((p) => ({ ...p, name: e.target.value }))}
-                />
-                <input
-                  className="rounded-lg border p-2 text-sm"
-                  type="number"
-                  min={10}
-                  max={240}
-                  value={newService.durationMin}
-                  onChange={(e) => setNewService((p) => ({ ...p, durationMin: Number(e.target.value) }))}
-                />
-                <input
-                  className="rounded-lg border p-2 text-sm"
-                  type="number"
-                  min={0}
-                  value={newService.price}
-                  onChange={(e) => setNewService((p) => ({ ...p, price: Number(e.target.value) }))}
-                />
-              </div>
-              <div className="mt-3 flex justify-end">
-                <button
-                  onClick={handleCreateService}
-                  disabled={creatingService}
-                  className="rounded-lg bg-black px-4 py-2 text-white disabled:opacity-40"
-                >
-                  {creatingService ? "Creating..." : "Create Service"}
-                </button>
-              </div>
-            </div>
+      {/* KPI */}
+      <div className="mt-6 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        {loading || !data ? (
+          Array.from({ length: 4 }).map((_, i) => (
+            <Card key={i}>
+              <CardHeader className="space-y-2">
+                <Skeleton className="h-4 w-28" />
+                <Skeleton className="h-7 w-32" />
+                <Skeleton className="h-4 w-20" />
+              </CardHeader>
+            </Card>
+          ))
+        ) : (
+          <>
+            {/* 1) Revenue (Realized) */}
+            <Card>
+              <CardHeader>
+                <CardDescription>{rangeLabel(range)} Revenue</CardDescription>
+                <CardTitle className="text-2xl">{currencyTRY(rangeRealizedRevenue)}</CardTitle>
+              </CardHeader>
+              <CardContent className="text-sm text-muted-foreground">
+                {deltaLabel(data.deltas.rangeRealizedRevenueDelta)} vs previous period
+              </CardContent>
+            </Card>
 
-            <div className="mt-4">
-              {loadingServices && <p className="text-sm text-gray-600">Loading...</p>}
-              {!loadingServices && (
-                <div className="space-y-3">
-                  {services.map((s) => (
-                    <div key={s.id} className="flex items-center justify-between rounded-xl border p-4">
-                      <div>
-                        <div className="font-medium">
-                          {s.name}{" "}
-                          <span className="text-sm text-gray-500">({s.durationMin} dk)</span>
-                        </div>
-                        <div className="text-sm text-gray-600">
-                          {s.price != null ? `₺${s.price}` : "No price"} •{" "}
-                          {s.isActive ? "Active" : "Inactive"}
-                        </div>
-                      </div>
+            {/* 2) Appointments */}
+            <Card>
+              <CardHeader>
+                <CardDescription>{rangeLabel(range)} Appointments</CardDescription>
+                <CardTitle className="text-2xl">{rangeAppointments}</CardTitle>
+              </CardHeader>
+              <CardContent className="text-sm text-muted-foreground">
+                {deltaLabel(data.deltas.rangeAppointments)} vs previous period
+              </CardContent>
+            </Card>
 
-                      <button
-                        onClick={() => toggleServiceActive(s)}
-                        className="rounded-lg border px-3 py-2 text-sm hover:bg-gray-50"
-                      >
-                        {s.isActive ? "Deactivate" : "Activate"}
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        )}
+            {/* 3) Month revenue */}
+            <Card>
+              <CardHeader>
+                <CardDescription>Bu Ay Toplam Gelir</CardDescription>
+                <CardTitle className="text-2xl">{currencyTRY(data.kpis.monthRevenue)}</CardTitle>
+              </CardHeader>
+              <CardContent className="text-sm text-muted-foreground">
+                {deltaLabel(data.deltas.monthRevenue)} vs last month
+              </CardContent>
+            </Card>
 
-        {/* APPOINTMENTS TAB */}
-        {tab === "appointments" && (
-          <div className="mt-6">
-            {loadingAppt && <p className="text-sm text-gray-600">Loading...</p>}
+            {/* 4) Cancel rate */}
+            <Card>
+              <CardHeader>
+                <CardDescription>İptal Oranı (30 gün)</CardDescription>
+                <CardTitle className="text-2xl">{percent(data.kpis.cancelRate30d)}</CardTitle>
+              </CardHeader>
+              <CardContent className="text-sm text-muted-foreground">
+                {deltaLabel(data.deltas.cancelRate30d)} vs prev 30d
+              </CardContent>
+            </Card>
+          </>
 
-            {!loadingAppt && appointments.length === 0 && (
-              <p className="text-sm text-gray-600">No appointments yet.</p>
-            )}
 
-            {!loadingAppt && appointments.length > 0 && (
-              <div className="space-y-3">
-                {appointments.map((a) => (
-                  <div key={a.id} className="rounded-xl border p-4">
-                    <div className="flex flex-wrap items-center justify-between gap-3">
-                      <div className="min-w-0">
-                        <div className="font-medium">
-                          {a.service.name} • {a.user.name}{" "}
-                          <span className="text-sm text-gray-500">({a.user.email})</span>
-                        </div>
-                        <div className="mt-1 text-sm text-gray-600">
-                          {fmtDT(a.startAt)} → {fmtDT(a.endAt)} • {a.status}
-                        </div>
-                        {a.note && (
-                          <div className="mt-2 text-sm text-gray-700">Not: {a.note}</div>
-                        )}
-                      </div>
-
-                      <div className="flex flex-wrap gap-2">
-                        <button
-                          disabled={busyApptId === a.id}
-                          onClick={() => changeAppointmentStatus(a.id, "CONFIRMED")}
-                          className="rounded-lg border px-3 py-2 text-sm hover:bg-gray-50 disabled:opacity-40"
-                        >
-                          Confirm
-                        </button>
-                        <button
-                          disabled={busyApptId === a.id}
-                          onClick={() => changeAppointmentStatus(a.id, "DONE")}
-                          className="rounded-lg border px-3 py-2 text-sm hover:bg-gray-50 disabled:opacity-40"
-                        >
-                          Done
-                        </button>
-                        <button
-                          disabled={busyApptId === a.id}
-                          onClick={() => changeAppointmentStatus(a.id, "CANCELLED")}
-                          className="rounded-lg border px-3 py-2 text-sm hover:bg-gray-50 disabled:opacity-40"
-                        >
-                          Cancel
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
         )}
       </div>
+
+      {/* Charts */}
+      <div className="mt-6 grid gap-4 lg:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle>Revenue ({rangeLabel(range)})</CardTitle>
+            <CardDescription>Gelir trendi</CardDescription>
+          </CardHeader>
+
+          <CardContent className="pt-0">
+            <ChartContainer config={revenueChartConfig} className="h-64 w-full">
+              <AreaChart
+                accessibilityLayer
+                data={revenueChartData}
+                margin={{ left: 8, right: 12, top: 8, bottom: 0 }}
+              >
+                <CartesianGrid vertical={false} />
+
+                <XAxis
+
+                  dataKey="date"
+                  tickLine={false}
+                  axisLine={false}
+                  tickMargin={8}
+                  minTickGap={16}
+                  tickFormatter={formatShortTRDate}
+                />
+
+                <ChartTooltip
+                  cursor={false}
+                  content={
+                    <ChartTooltipContent
+                      labelFormatter={(label) => formatLongTRDate(label)}
+                      formatter={(value) => ["Gelir ", currencyTRY(Number(value))]}
+                    />
+                  }
+                />
+
+                <defs>
+                  <linearGradient id="fillRealized" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="55%" stopColor="var(--color-realized)" stopOpacity={0.4} />
+                    <stop offset="95%" stopColor="var(--color-realized)" stopOpacity={0.05} />
+                  </linearGradient>
+                </defs>
+                <Area
+                  dataKey="realized"
+                  type="monotone"
+                  strokeWidth={2}
+                  dot={false}
+                  activeDot={{ r: 5 }}
+                  isAnimationActive={false}
+                  fill="url(#fillRealized)"
+                  stroke="var(--color-realized)"
+                />
+
+
+                {/* realized'i line olarak daha okunaklı yapalım */}
+                <Line
+                  type="monotone"
+                  dataKey="realized"
+                  stroke="var(--color-realized)"
+                  strokeWidth={2}
+                  dot={false}
+                />
+              </AreaChart>
+            </ChartContainer>
+          </CardContent>
+
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Status distribution</CardTitle>
+            <CardDescription>Seçili aralıkta durum dağılımı</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {loading || !data ? (
+              <Skeleton className="h-64 w-full" />
+            ) : statusPieData.length === 0 ? (
+              <div className="rounded-xl border border-dashed p-8 text-center text-sm text-muted-foreground">
+                Bu aralıkta randevu yok.
+              </div>
+            ) : (
+              <div className="grid items-center gap-4 md:grid-cols-2">
+                <div className="h-64">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie data={statusPieData} dataKey="value" nameKey="name" outerRadius={90}>
+                        {statusPieData.map((s) => (
+                          <Cell key={s.name} fill={statusColor(s.name)} />
+                        ))}
+                      </Pie>
+                      <Tooltip />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+
+                <div className="space-y-2">
+                  {statusPieData.map((s) => (
+                    <div key={s.name} className="flex items-center justify-between rounded-lg border p-2">
+                      <div className="flex items-center gap-2">
+                        <span className="inline-block h-2.5 w-2.5 rounded-full" style={{ background: statusColor(s.name) }} />
+                        <span className="text-sm font-medium">{s.name}</span>
+                      </div>
+                      <Badge variant="secondary">{s.value}</Badge>
+                    </div>
+
+                  ))}
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Today appointments */}
+      <Card className="mt-6">
+        <CardHeader>
+          <CardTitle>Today appointments</CardTitle>
+          <CardDescription>Bugün gelen randevular</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {loading || !data ? (
+            <Skeleton className="h-52 w-full" />
+          ) : data.todayAppointments.length === 0 ? (
+            <div className="rounded-xl border border-dashed p-10 text-center">
+              <div className="text-sm text-muted-foreground">Bugün randevu yok.</div>
+              <Button className="mt-4" onClick={() => alert("V2: Create appointment")}>
+                Create appointment
+              </Button>
+            </div>
+          ) : (
+            <div className="rounded-xl border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-24">Saat</TableHead>
+                    <TableHead>Müşteri</TableHead>
+                    <TableHead>Hizmet</TableHead>
+                    <TableHead className="w-28">Ücret</TableHead>
+                    <TableHead className="w-28">Durum</TableHead>
+                    <TableHead className="w-56 text-right">Aksiyon</TableHead>
+                  </TableRow>
+                </TableHeader>
+
+                <TableBody>
+                  {data.todayAppointments.map((a) => (
+                    <TableRow key={a.id}>
+                      <TableCell className="font-medium">{a.time}</TableCell>
+                      <TableCell>
+                        <div className="font-medium">{a.customerName}</div>
+                        <div className="text-xs text-muted-foreground">{a.customerEmail}</div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="font-medium">{a.serviceName}</div>
+                        <div className="text-xs text-muted-foreground">{a.durationMin} dk</div>
+                      </TableCell>
+                      <TableCell>{a.price == null ? "—" : currencyTRY(a.price)}</TableCell>
+                      <TableCell>
+                        <Badge variant={statusBadgeVariant(a.status)}>{a.status}</Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            disabled={busyApptId === a.id || a.status === "CONFIRMED" || a.status === "DONE" || a.status === "CANCELLED"}
+                            onClick={() => changeStatus(a.id, "CONFIRMED")}
+                          >
+                            {busyApptId === a.id ? "..." : "Confirm"}
+                          </Button>
+
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            disabled={busyApptId === a.id || a.status === "DONE" || a.status === "CANCELLED"}
+                            onClick={() => changeStatus(a.id, "DONE")}
+                          >
+                            {busyApptId === a.id ? "..." : "Done"}
+                          </Button>
+
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            disabled={busyApptId === a.id || a.status === "CANCELLED" || a.status === "DONE"}
+                            onClick={() => changeStatus(a.id, "CANCELLED")}
+                          >
+                            {busyApptId === a.id ? "..." : "Cancel"}
+                          </Button>
+
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+
+          <Separator className="my-4" />
+
+          {!loading && data && !hasAnyData && (
+            <div className="rounded-xl border border-dashed p-8 text-center">
+              <div className="text-base font-medium">Henüz veri yok</div>
+              <div className="mt-1 text-sm text-muted-foreground">
+                İlk randevular geldikçe dashboard otomatik dolacak.
+              </div>
+              <div className="mt-4 flex justify-center gap-2">
+                <Button onClick={() => alert("V2: Create appointment")}>Randevu oluştur</Button>
+                <Button variant="outline" onClick={() => setRange("30d")}>
+                  Son 30 gün
+                </Button>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

@@ -3,10 +3,29 @@ import { getServices, type Service } from "../api/services";
 import { getAvailability } from "../api/availability";
 import { createAppointment } from "../api/appointments";
 
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { Textarea } from "@/components/ui/textarea";
+import { Skeleton } from "@/components/ui/skeleton";
+
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
 export default function Book() {
   const [services, setServices] = useState<Service[]>([]);
   const [serviceId, setServiceId] = useState<string>("");
   const [date, setDate] = useState<string>("");
+  const [note, setNote] = useState<string>("");
+
   const [slots, setSlots] = useState<string[]>([]);
   const [selectedSlot, setSelectedSlot] = useState<string>("");
 
@@ -20,7 +39,7 @@ export default function Book() {
     [services, serviceId]
   );
 
-  // 1) services yükle
+  // services yükle
   useEffect(() => {
     async function load() {
       setLoadingServices(true);
@@ -28,7 +47,7 @@ export default function Book() {
       try {
         const data = await getServices();
         setServices(data);
-        if (data[0]) setServiceId(data[0].id); // default seç
+        if (data[0]) setServiceId(data[0].id);
       } catch {
         setError("Services yüklenemedi.");
       } finally {
@@ -38,7 +57,7 @@ export default function Book() {
     load();
   }, []);
 
-  // 2) service veya date değişince slots çek
+  // slots yükle
   useEffect(() => {
     async function loadSlots() {
       setSlots([]);
@@ -52,13 +71,11 @@ export default function Book() {
         const data = await getAvailability(date, serviceId);
         setSlots(data.slots);
       } catch (e: any) {
-        // backend 400/404 vs gelebilir
         setError(e?.response?.data?.message ?? "Slots yüklenemedi.");
       } finally {
         setLoadingSlots(false);
       }
     }
-
     loadSlots();
   }, [serviceId, date]);
 
@@ -72,14 +89,16 @@ export default function Book() {
         serviceId,
         date,
         startTime: selectedSlot,
-        note: "",
+        note: note.trim() ? note.trim() : undefined,
       });
 
-      // randevu aldıktan sonra slots’u yenile (slot düşecek)
+      // slot listesi güncellensin
       const data = await getAvailability(date, serviceId);
       setSlots(data.slots);
       setSelectedSlot("");
+      setNote("");
 
+      // şimdilik basit
       alert("Randevu oluşturuldu!");
     } catch (e: any) {
       setError(e?.response?.data?.message ?? "Randevu oluşturulamadı.");
@@ -88,110 +107,157 @@ export default function Book() {
     }
   }
 
-  return (
-    <div className="mx-auto max-w-4xl p-6">
-      <div className="rounded-2xl bg-white p-6 shadow">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <h1 className="text-xl font-semibold">Book Appointment</h1>
-            <p className="mt-1 text-sm text-gray-600">
-              Hizmet seç, tarih seç, boş saatlerden birini al.
-            </p>
-          </div>
+  const canConfirm = !!serviceId && !!date && !!selectedSlot && !creating;
 
-          {selectedService && (
-            <div className="rounded-xl border px-3 py-2 text-sm">
-              <div className="font-medium">{selectedService.name}</div>
-              <div className="text-gray-600">
-                {selectedService.durationMin} dk
-                {selectedService.price != null ? ` • ₺${selectedService.price}` : ""}
+  return (
+    <div className="mx-auto max-w-6xl p-6">
+      <div className="mb-6">
+        <h1 className="text-2xl font-semibold tracking-tight">Book appointment</h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Hizmet seç, tarih belirle, boş saatlerden birini al.
+        </p>
+      </div>
+
+      {error && (
+        <Card className="mb-6 border-destructive/30">
+          <CardContent className="p-4 text-sm text-destructive">
+            {error}
+          </CardContent>
+        </Card>
+      )}
+
+      <div className="grid gap-6 lg:grid-cols-[1fr_1.4fr]">
+        {/* Left: form */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Details</CardTitle>
+            <CardDescription>Servis, tarih ve not (opsiyonel).</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-5">
+            <div className="space-y-2">
+              <Label>Service</Label>
+              {loadingServices ? (
+                <Skeleton className="h-10 w-full" />
+              ) : (
+                <Select value={serviceId} onValueChange={setServiceId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a service" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {services.map((s) => (
+                      <SelectItem key={s.id} value={s.id}>
+                        {s.name} • {s.durationMin} dk{s.price != null ? ` • ₺${s.price}` : ""}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label>Date</Label>
+              <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Note (optional)</Label>
+              <Textarea
+                placeholder="Örn: kısa kesim, sakal şekillendirme…"
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                maxLength={300}
+              />
+              <div className="text-xs text-muted-foreground">
+                {note.length}/300
               </div>
             </div>
-          )}
-        </div>
 
-        {/* Controls */}
-        <div className="mt-6 grid gap-4 md:grid-cols-2">
-          <div>
-            <label className="text-sm font-medium">Service</label>
-            <select
-              className="mt-1 w-full rounded-lg border p-2"
-              value={serviceId}
-              onChange={(e) => setServiceId(e.target.value)}
-              disabled={loadingServices}
-            >
-              {loadingServices && <option>Loading...</option>}
-              {!loadingServices &&
-                services.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.name} ({s.durationMin} dk)
-                  </option>
+            <Separator />
+
+            <div className="rounded-xl border p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <div className="text-sm font-medium">Selected</div>
+                  <div className="mt-1 text-sm text-muted-foreground">
+                    {selectedService ? selectedService.name : "—"}
+                  </div>
+                </div>
+
+                <div className="flex gap-2">
+                  {selectedService && (
+                    <Badge variant="secondary">{selectedService.durationMin} dk</Badge>
+                  )}
+                  {selectedSlot && <Badge>{selectedSlot}</Badge>}
+                </div>
+              </div>
+
+              <Button
+                className="mt-4 w-full"
+                disabled={!canConfirm}
+                onClick={handleCreate}
+              >
+                {creating ? "Creating..." : "Confirm appointment"}
+              </Button>
+
+              {!selectedSlot && (
+                <p className="mt-3 text-xs text-muted-foreground">
+                  Confirm için sağdan bir saat seç.
+                </p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Right: slots */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Available slots</CardTitle>
+            <CardDescription>
+              {date ? "Boş saatleri seç." : "Slotları görmek için tarih seç."}
+            </CardDescription>
+          </CardHeader>
+
+          <CardContent>
+            {!date && (
+              <div className="rounded-xl border border-dashed p-8 text-center text-sm text-muted-foreground">
+                Tarih seçildiğinde slotlar burada görünecek.
+              </div>
+            )}
+
+            {date && loadingSlots && (
+              <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-6">
+                {Array.from({ length: 18 }).map((_, i) => (
+                  <Skeleton key={i} className="h-10 w-full" />
                 ))}
-            </select>
-          </div>
+              </div>
+            )}
 
-          <div>
-            <label className="text-sm font-medium">Date</label>
-            <input
-              type="date"
-              className="mt-1 w-full rounded-lg border p-2"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-            />
-          </div>
-        </div>
+            {date && !loadingSlots && slots.length === 0 && (
+              <div className="rounded-xl border p-8 text-center text-sm text-muted-foreground">
+                Bu gün için boş slot yok.
+              </div>
+            )}
 
-        {/* Error */}
-        {error && (
-          <div className="mt-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
-            {error}
-          </div>
-        )}
-
-        {/* Slots */}
-        <div className="mt-6">
-          <div className="flex items-center justify-between">
-            <h2 className="text-sm font-medium">Available slots</h2>
-            {loadingSlots && <span className="text-sm text-gray-500">Loading…</span>}
-          </div>
-
-          {!date && (
-            <p className="mt-3 text-sm text-gray-600">Önce bir tarih seç.</p>
-          )}
-
-          {date && !loadingSlots && slots.length === 0 && (
-            <p className="mt-3 text-sm text-gray-600">Bu gün için boş slot yok.</p>
-          )}
-
-          <div className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-6">
-            {slots.map((t) => {
-              const active = t === selectedSlot;
-              return (
-                <button
-                  key={t}
-                  onClick={() => setSelectedSlot(t)}
-                  className={[
-                    "rounded-lg border px-2 py-2 text-sm",
-                    active ? "bg-black text-white" : "bg-white hover:bg-gray-50",
-                  ].join(" ")}
-                >
-                  {t}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Action */}
-        <div className="mt-6 flex items-center justify-end gap-3">
-          <button
-            onClick={handleCreate}
-            disabled={!serviceId || !date || !selectedSlot || creating}
-            className="rounded-lg bg-black px-4 py-2 text-white disabled:opacity-40"
-          >
-            {creating ? "Creating..." : "Confirm Appointment"}
-          </button>
-        </div>
+            {date && !loadingSlots && slots.length > 0 && (
+              <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-6">
+                {slots.map((t) => {
+                  const active = t === selectedSlot;
+                  return (
+                    <Button
+                      key={t}
+                      type="button"
+                      variant={active ? "default" : "outline"}
+                      onClick={() => setSelectedSlot(t)}
+                      className="w-full"
+                    >
+                      {t}
+                    </Button>
+                  );
+                })}
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
