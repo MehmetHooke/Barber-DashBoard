@@ -112,7 +112,7 @@ export default function Book() {
   return (
     <div className="mx-auto max-w-6xl p-6">
       <div className="mb-6">
-        <h1 className="text-2xl font-semibold tracking-tight">Book appointment</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Randevu Al</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           Hizmet seç, tarih belirle, boş saatlerden birini al.
         </p>
@@ -130,12 +130,12 @@ export default function Book() {
         {/* Left: form */}
         <Card>
           <CardHeader>
-            <CardTitle>Details</CardTitle>
+            <CardTitle>Detaylar</CardTitle>
             <CardDescription>Servis, tarih ve not (opsiyonel).</CardDescription>
           </CardHeader>
           <CardContent className="space-y-5">
             <div className="space-y-2">
-              <Label>Service</Label>
+              <Label>Hizmet</Label>
               {loadingServices ? (
                 <Skeleton className="h-10 w-full" />
               ) : (
@@ -155,12 +155,12 @@ export default function Book() {
             </div>
 
             <div className="space-y-2">
-              <Label>Date</Label>
+              <Label>Tarih</Label>
               <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
             </div>
 
             <div className="space-y-2">
-              <Label>Note (optional)</Label>
+              <Label>Note (opsiyonel)</Label>
               <Textarea
                 placeholder="Örn: kısa kesim, sakal şekillendirme…"
                 value={note}
@@ -177,7 +177,7 @@ export default function Book() {
             <div className="rounded-xl border p-4">
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <div className="text-sm font-medium">Selected</div>
+                  <div className="text-sm font-medium">Seçili Hizmet</div>
                   <div className="mt-1 text-sm text-muted-foreground">
                     {selectedService ? selectedService.name : "—"}
                   </div>
@@ -196,12 +196,12 @@ export default function Book() {
                 disabled={!canConfirm}
                 onClick={handleCreate}
               >
-                {creating ? "Creating..." : "Confirm appointment"}
+                {creating ? "Oluşturuluyor..." : "Randevuyu Onayla"}
               </Button>
 
               {!selectedSlot && (
                 <p className="mt-3 text-xs text-muted-foreground">
-                  Confirm için sağdan bir saat seç.
+                  Randevuyu tamamlamak için bir saat seç.
                 </p>
               )}
             </div>
@@ -211,9 +211,9 @@ export default function Book() {
         {/* Right: slots */}
         <Card>
           <CardHeader>
-            <CardTitle>Available slots</CardTitle>
+            <CardTitle>Uygun Zaman Dilimleri</CardTitle>
             <CardDescription>
-              {date ? "Boş saatleri seç." : "Slotları görmek için tarih seç."}
+              {date ? "Boş saatleri seç." : "Randevu saatlerini görmek için tarih seç."}
             </CardDescription>
           </CardHeader>
 

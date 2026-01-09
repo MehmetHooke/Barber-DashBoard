@@ -71,12 +71,12 @@ export default function ManageServicesDialog({ onChanged }: { onChanged?: () => 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="secondary">Manage services</Button>
+        <Button variant="secondary">Hizmetler</Button>
       </DialogTrigger>
 
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Services</DialogTitle>
+          <DialogTitle>Hizmetler</DialogTitle>
           <DialogDescription>Hizmet ekle, fiyat/süre yönet, aktif/pasif yap.</DialogDescription>
         </DialogHeader>
 
@@ -90,7 +90,7 @@ export default function ManageServicesDialog({ onChanged }: { onChanged?: () => 
         <Card className="p-4">
           <div className="grid gap-3 md:grid-cols-3">
             <div className="md:col-span-1">
-              <Label>Name</Label>
+              <Label>Hizmet ismi</Label>
               <Input
                 value={form.name}
                 onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
@@ -99,7 +99,7 @@ export default function ManageServicesDialog({ onChanged }: { onChanged?: () => 
             </div>
 
             <div className="md:col-span-1">
-              <Label>Duration (min)</Label>
+              <Label>Süre (dk)</Label>
               <Input
                 type="number"
                 min={10}
@@ -110,7 +110,7 @@ export default function ManageServicesDialog({ onChanged }: { onChanged?: () => 
             </div>
 
             <div className="md:col-span-1">
-              <Label>Price</Label>
+              <Label>Fiyat</Label>
               <Input
                 type="number"
                 min={0}
@@ -122,7 +122,7 @@ export default function ManageServicesDialog({ onChanged }: { onChanged?: () => 
 
           <div className="mt-3 flex justify-end">
             <Button onClick={handleCreate} disabled={creating}>
-              {creating ? "Creating..." : "Create service"}
+              {creating ? "Oluşturuluyor..." : "Hizmet Oluştur"}
             </Button>
           </div>
         </Card>
@@ -159,7 +159,7 @@ export default function ManageServicesDialog({ onChanged }: { onChanged?: () => 
                 </div>
 
                 <Button variant="outline" onClick={() => toggleActive(s)}>
-                  {s.isActive ? "Deactivate" : "Activate"}
+                  {s.isActive ? "Hizmeti Durdur" : "Hizmeti Aktif Et"}
                 </Button>
               </div>
             ))}

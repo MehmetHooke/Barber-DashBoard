@@ -128,45 +128,64 @@ export async function analyticsSummary(req: AuthRequest, res: Response) {
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
   const monthEnd = now;
 
-  const prevMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1, 0, 0, 0, 0);
-  const prevMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
+  const prevMonthStart = new Date(
+    now.getFullYear(),
+    now.getMonth() - 1,
+    1,
+    0,
+    0,
+    0,
+    0
+  );
+  const prevMonthEnd = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    0,
+    23,
+    59,
+    59,
+    999
+  );
 
-  const [mPlannedAgg, pmPlannedAgg, mRealizedAgg, pmRealizedAgg] = await Promise.all([
-    prisma.appointment.aggregate({
-      where: {
-        startAt: { gte: monthStart, lte: monthEnd },
-        status: { in: plannedStatuses as any },
-      },
-      _sum: { priceSnapshot: true },
-    }),
-    prisma.appointment.aggregate({
-      where: {
-        startAt: { gte: prevMonthStart, lte: prevMonthEnd },
-        status: { in: plannedStatuses as any },
-      },
-      _sum: { priceSnapshot: true },
-    }),
-    prisma.appointment.aggregate({
-      where: {
-        startAt: { gte: monthStart, lte: monthEnd },
-        status: { in: realizedStatuses as any },
-      },
-      _sum: { priceSnapshot: true },
-    }),
-    prisma.appointment.aggregate({
-      where: {
-        startAt: { gte: prevMonthStart, lte: prevMonthEnd },
-        status: { in: realizedStatuses as any },
-      },
-      _sum: { priceSnapshot: true },
-    }),
-  ]);
+  const [mPlannedAgg, pmPlannedAgg, mRealizedAgg, pmRealizedAgg] =
+    await Promise.all([
+      prisma.appointment.aggregate({
+        where: {
+          startAt: { gte: monthStart, lte: monthEnd },
+          status: { in: plannedStatuses as any },
+        },
+        _sum: { priceSnapshot: true },
+      }),
+      prisma.appointment.aggregate({
+        where: {
+          startAt: { gte: prevMonthStart, lte: prevMonthEnd },
+          status: { in: plannedStatuses as any },
+        },
+        _sum: { priceSnapshot: true },
+      }),
+      prisma.appointment.aggregate({
+        where: {
+          startAt: { gte: monthStart, lte: monthEnd },
+          status: { in: realizedStatuses as any },
+        },
+        _sum: { priceSnapshot: true },
+      }),
+      prisma.appointment.aggregate({
+        where: {
+          startAt: { gte: prevMonthStart, lte: prevMonthEnd },
+          status: { in: realizedStatuses as any },
+        },
+        _sum: { priceSnapshot: true },
+      }),
+    ]);
 
   const monthPlannedRevenue = Number(mPlannedAgg._sum.priceSnapshot ?? 0);
   const prevMonthPlannedRevenue = Number(pmPlannedAgg._sum.priceSnapshot ?? 0);
 
   const monthRealizedRevenue = Number(mRealizedAgg._sum.priceSnapshot ?? 0);
-  const prevMonthRealizedRevenue = Number(pmRealizedAgg._sum.priceSnapshot ?? 0);
+  const prevMonthRealizedRevenue = Number(
+    pmRealizedAgg._sum.priceSnapshot ?? 0
+  );
 
   // (UI istersen planned veya realized gösterebilir; v1’de planned’i month revenue diye döndüm)
   const monthRevenue = monthPlannedRevenue;
@@ -196,7 +215,10 @@ export async function analyticsSummary(req: AuthRequest, res: Response) {
 
   const [cancelledPrev30, totalPrev30] = await Promise.all([
     prisma.appointment.count({
-      where: { startAt: { gte: prev30Start, lte: prev30End }, status: "CANCELLED" },
+      where: {
+        startAt: { gte: prev30Start, lte: prev30End },
+        status: "CANCELLED",
+      },
     }),
     prisma.appointment.count({
       where: { startAt: { gte: prev30Start, lte: prev30End } },
@@ -244,8 +266,12 @@ export async function analyticsSummary(req: AuthRequest, res: Response) {
       },
       _sum: { priceSnapshot: true },
     }),
-    prisma.appointment.count({ where: { startAt: { gte: currStart, lte: currEnd } } }),
-    prisma.appointment.count({ where: { startAt: { gte: prevStart, lte: prevEnd } } }),
+    prisma.appointment.count({
+      where: { startAt: { gte: currStart, lte: currEnd } },
+    }),
+    prisma.appointment.count({
+      where: { startAt: { gte: prevStart, lte: prevEnd } },
+    }),
     prisma.appointment.aggregate({
       where: {
         startAt: { gte: currStart, lte: currEnd },
@@ -268,8 +294,12 @@ export async function analyticsSummary(req: AuthRequest, res: Response) {
   const currRealized = Number(currRealizedAgg._sum.priceSnapshot ?? 0);
   const prevRealized = Number(prevRealizedAgg._sum.priceSnapshot ?? 0);
 
-  const currCancelledValue = Number(currCancelledValueAgg._sum.priceSnapshot ?? 0);
-  const prevCancelledValue = Number(prevCancelledValueAgg._sum.priceSnapshot ?? 0);
+  const currCancelledValue = Number(
+    currCancelledValueAgg._sum.priceSnapshot ?? 0
+  );
+  const prevCancelledValue = Number(
+    prevCancelledValueAgg._sum.priceSnapshot ?? 0
+  );
 
   // ---- Series: revenueDaily (last 30 days) planned vs realized ----
   // Pull CONFIRMED + DONE for planned; DONE subset for realized
@@ -305,15 +335,20 @@ export async function analyticsSummary(req: AuthRequest, res: Response) {
     }
   }
 
-  const revenueDaily = Array.from(plannedMap.entries()).map(([date, planned]) => ({
-    date,
-    planned,
-    realized: realizedMap.get(date) ?? 0,
-  }));
+  const revenueDaily = Array.from(plannedMap.entries()).map(
+    ([date, planned]) => ({
+      date,
+      planned,
+      realized: realizedMap.get(date) ?? 0,
+    })
+  );
 
   // ---- Series: cancelledValueDaily (last 30 days) positive ----
   const cancelledFor30 = await prisma.appointment.findMany({
-    where: { startAt: { gte: last30Start, lte: last30End }, status: "CANCELLED" },
+    where: {
+      startAt: { gte: last30Start, lte: last30End },
+      status: "CANCELLED",
+    },
     select: { startAt: true, priceSnapshot: true },
   });
 
@@ -325,9 +360,14 @@ export async function analyticsSummary(req: AuthRequest, res: Response) {
   for (const a of cancelledFor30) {
     const day = fmtYMD(a.startAt);
     if (!cancelledMap.has(day)) continue;
-    cancelledMap.set(day, (cancelledMap.get(day) ?? 0) + Number(a.priceSnapshot ?? 0));
+    cancelledMap.set(
+      day,
+      (cancelledMap.get(day) ?? 0) + Number(a.priceSnapshot ?? 0)
+    );
   }
-  const cancelledValueDaily = Array.from(cancelledMap.entries()).map(([date, value]) => ({ date, value }));
+  const cancelledValueDaily = Array.from(cancelledMap.entries()).map(
+    ([date, value]) => ({ date, value })
+  );
 
   // ---- Series: statusCounts (current range) ----
   const statusGrouped = await prisma.appointment.groupBy({
@@ -338,6 +378,30 @@ export async function analyticsSummary(req: AuthRequest, res: Response) {
 
   const statusCounts: Record<string, number> = {};
   for (const row of statusGrouped) statusCounts[row.status] = row._count._all;
+
+  // ---- Range appointments list----
+  const rangeItems = await prisma.appointment.findMany({
+    where: { startAt: { gte: currStart, lte: currEnd } },
+    orderBy: { startAt: "asc" },
+    include: {
+      user: { select: { id: true, name: true, email: true } },
+      service: {
+        select: { id: true, name: true, durationMin: true, price: true },
+      },
+    },
+  });
+
+  const appointmentsList = rangeItems.map((a) => ({
+    id: a.id,
+    startAt: a.startAt.toISOString(), // ✅ çok önemli
+    endAt: a.endAt.toISOString(), // ✅ çok önemli
+    customerName: a.user.name,
+    customerEmail: a.user.email,
+    serviceName: a.service.name,
+    durationMin: a.service.durationMin,
+    price: a.priceSnapshot ?? a.service.price ?? null,
+    status: a.status,
+  }));
 
   // ---- Today appointments list ----
   const todayItems = await prisma.appointment.findMany({
@@ -389,7 +453,9 @@ export async function analyticsSummary(req: AuthRequest, res: Response) {
       // cancel rate
       cancelRate30d:
         cancelRatePrev30 === 0
-          ? (cancelRate30d === 0 ? 0 : 1)
+          ? cancelRate30d === 0
+            ? 0
+            : 1
           : (cancelRate30d - cancelRatePrev30) / cancelRatePrev30,
 
       // range deltas (UI’da kullanırsın)
@@ -407,10 +473,14 @@ export async function analyticsSummary(req: AuthRequest, res: Response) {
       cancelledValueDaily,
       statusCounts,
     },
+    appointments: appointmentsList,
     todayAppointments: todayAppointmentsList,
     meta: {
       today: { start: todayStart.toISOString(), end: todayEnd.toISOString() },
-      rangeWindow: { start: currStart.toISOString(), end: currEnd.toISOString() },
+      rangeWindow: {
+        start: currStart.toISOString(),
+        end: currEnd.toISOString(),
+      },
     },
   });
 }

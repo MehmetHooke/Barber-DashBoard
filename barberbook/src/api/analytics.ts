@@ -27,7 +27,19 @@ export type AnalyticsSummary = {
     revenueDaily: { date: string; planned: number; realized: number }[];
     statusCounts: Record<string, number>;
   };
-  todayAppointments: Array<{
+  appointments?: Array<{
+    id: string;
+    startAt: string;     // <-- BUNU EKLE (çok önemli)
+    endAt: string;       // <-- BUNU EKLE (çok önemli)
+    customerName: string;
+    customerEmail: string;
+    serviceName: string;
+    durationMin: number;
+    price: number | null;
+    status: "PENDING" | "CONFIRMED" | "CANCELLED" | "DONE";
+    }>;
+  
+  todayAppointments?: Array<{
     id: string;
     time: string;
     customerName: string;

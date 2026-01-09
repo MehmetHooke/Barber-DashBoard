@@ -9,16 +9,35 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Separator } from "@/components/ui/separator";
+import AppointmentDetailsModal from "@/components/AppointmentDetailsModal";
 
-function formatDateTime(iso: string) {
+
+function formatDateTimeTR(iso: string) {
   const d = new Date(iso);
-  const yyyy = d.getFullYear();
-  const mm = String(d.getMonth() + 1).padStart(2, "0");
-  const dd = String(d.getDate()).padStart(2, "0");
+
+  // "9 Ocak 2026" kısmı
+  const datePart = new Intl.DateTimeFormat("tr-TR", {
+    day: "numeric",
+    month: "long",
+  }).format(d);
+
+  // "Cuma" kısmı
+  const dayPart = new Intl.DateTimeFormat("tr-TR", {
+    weekday: "long",
+  }).format(d);
+
+  // weekday "cuma" gelirse baş harf büyütmek için:
+  const dayCap = dayPart.charAt(0).toUpperCase() + dayPart.slice(1);
+
+  return `${datePart} ${dayCap}`;
+}
+
+
+function formatTimeHour(iso: string) {
+  const d = new Date(iso);
   const hh = String(d.getHours()).padStart(2, "0");
   const mi = String(d.getMinutes()).padStart(2, "0");
-  return `${yyyy}-${mm}-${dd} ${hh}:${mi}`;
+  return `${hh}.${mi}`;
 }
 
 function statusVariant(status: Appointment["status"]): "default" | "secondary" | "destructive" | "outline" {
@@ -34,6 +53,10 @@ export default function MyAppointments() {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  const [detailOpen, setDetailOpen] = useState(false);
+  const [selectedAppt, setSelectedAppt] = useState<any | null>(null);
+
+
   const upcoming = useMemo(
     () => items.filter((a) => a.status !== "CANCELLED" && a.status !== "DONE"),
     [items]
@@ -42,6 +65,21 @@ export default function MyAppointments() {
     () => items.filter((a) => a.status === "CANCELLED" || a.status === "DONE"),
     [items]
   );
+
+  function statusBadge(status: Appointment["status"]) {
+    switch (status) {
+      case "CONFIRMED":
+        return <Badge className="border-none" variant="default">Onaylandı</Badge>;
+      case "PENDING":
+        return <Badge className="border-none" variant="secondary">Beklemede</Badge>;
+      case "CANCELLED":
+        return <Badge className="bg-transparent  border-none " >İptal</Badge>;
+      case "DONE":
+        return <Badge className="border-none" variant="outline">Tamamlandı</Badge>;
+      default:
+        return <Badge className="border-none" variant="secondary">Durum</Badge>;
+    }
+  }
 
   async function load() {
     setLoading(true);
@@ -80,14 +118,14 @@ export default function MyAppointments() {
     <div className="mx-auto max-w-6xl p-6">
       <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">My appointments</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">Randevularım</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             Randevularını gör, iptal et ve geçmişi takip et.
           </p>
         </div>
 
         <Button variant="outline" onClick={load} disabled={loading}>
-          Refresh
+          Yenile
         </Button>
       </div>
 
@@ -118,7 +156,7 @@ export default function MyAppointments() {
       {!loading && items.length === 0 && (
         <Card>
           <CardHeader>
-            <CardTitle>No appointments</CardTitle>
+            <CardTitle>Randevunuz yok !</CardTitle>
             <CardDescription>
               Henüz randevun yok. Book sayfasından randevu oluşturabilirsin.
             </CardDescription>
@@ -132,7 +170,7 @@ export default function MyAppointments() {
           {/* Upcoming */}
           <Card>
             <CardHeader>
-              <CardTitle>Upcoming</CardTitle>
+              <CardTitle>Gelecek randevular</CardTitle>
               <CardDescription>İptal edilmemiş ve tamamlanmamış randevular.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
@@ -150,11 +188,13 @@ export default function MyAppointments() {
                       <div className="min-w-0">
                         <div className="flex items-center gap-2">
                           <div className="font-medium">{a.service.name}</div>
-                          <Badge variant={statusVariant(a.status)}>{a.status}</Badge>
+                          <Badge variant={statusVariant(a.status)}>{statusBadge(a.status)}</Badge>
                         </div>
 
                         <div className="mt-1 text-sm text-muted-foreground">
-                          {formatDateTime(a.startAt)} → {formatDateTime(a.endAt)}
+                          {formatDateTimeTR(a.startAt)}
+                          <span className="mx-2">•</span>
+                          {formatTimeHour(a.startAt)} → {formatTimeHour(a.endAt)}
                           <span className="mx-2">•</span>
                           {a.service.durationMin} dk
                           {a.service.price != null ? (
@@ -188,7 +228,7 @@ export default function MyAppointments() {
           {/* History */}
           <Card>
             <CardHeader>
-              <CardTitle>History</CardTitle>
+              <CardTitle>Geçmiş</CardTitle>
               <CardDescription>Tamamlanan veya iptal edilen randevular.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
@@ -204,10 +244,12 @@ export default function MyAppointments() {
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
                         <div className="font-medium">{a.service.name}</div>
-                        <Badge variant={statusVariant(a.status)}>{a.status}</Badge>
+                        <Badge variant={statusVariant(a.status)}>{statusBadge(a.status)}</Badge>
                       </div>
                       <div className="mt-1 text-sm text-muted-foreground">
-                        {formatDateTime(a.startAt)} → {formatDateTime(a.endAt)}
+                        {formatDateTimeTR(a.startAt)}
+                        <span className="mx-2">•</span>
+                        {formatTimeHour(a.startAt)} → {formatTimeHour(a.endAt)}
                         <span className="mx-2">•</span>
                         {a.service.durationMin} dk
                         {a.service.price != null ? (
@@ -218,26 +260,42 @@ export default function MyAppointments() {
                       </div>
                       {a.note && (
                         <div className="mt-2 text-sm">
-                          <span className="text-muted-foreground">Not:</span> {a.note}
+                          <span className="text-muted-foreground">Müşteri Notu:</span> {a.note}
                         </div>
                       )}
                     </div>
 
-                    <Button variant="outline" disabled>
-                      View
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        setSelectedAppt(a);
+                        setDetailOpen(true);
+                      }}
+                    >
+                      Detay
                     </Button>
+
                   </div>
                 </div>
               ))}
 
-              <Separator />
-              <p className="text-xs text-muted-foreground">
-                Not: History bölümündeki “View” butonu v2’de detay sayfasına gidebilir.
-              </p>
+              <AppointmentDetailsModal
+                open={detailOpen}
+                onOpenChange={(o) => {
+                  setDetailOpen(o);
+                  if (!o) setSelectedAppt(null);
+                }}
+                appointment={selectedAppt}
+                formatDate={formatDateTimeTR}
+              
+              />
             </CardContent>
           </Card>
         </div>
       )}
+
+
     </div>
   );
 }

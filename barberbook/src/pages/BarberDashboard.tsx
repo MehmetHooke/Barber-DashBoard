@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { getAnalyticsSummary, type AnalyticsRange, type AnalyticsSummary } from "../api/analytics";
-import { updateAppointmentStatus } from "../api/adminAppointments";
+import { updateAppointmentStatus, type AdminAppointment } from "../api/adminAppointments";
 
 import {
   ChartContainer,
@@ -30,16 +30,15 @@ import {
   Area,
   AreaChart,
   CartesianGrid,
-  LineChart,
   Line,
   XAxis,
-  YAxis,
   Tooltip,
   PieChart,
   Pie,
   Cell,
 } from "recharts";
 import ManageServicesDialog from "@/components/ManageServicesDialog";
+import { Link } from "react-router-dom";
 
 function currencyTRY(v: number) {
   return new Intl.NumberFormat("tr-TR", { style: "currency", currency: "TRY", maximumFractionDigits: 0 }).format(v);
@@ -54,12 +53,39 @@ function deltaLabel(d: number) {
   return p > 0 ? `+${p}%` : `${p}%`;
 }
 
-function statusBadgeVariant(status: string): "default" | "secondary" | "destructive" | "outline" {
-  if (status === "CONFIRMED") return "default";
-  if (status === "PENDING") return "secondary";
-  if (status === "DONE") return "outline";
-  return "destructive"; // CANCELLED
+
+type AnyStatus = AdminAppointment["status"];
+
+function StatusBadge({ status }: { status: AnyStatus }) {
+  switch (status) {
+    case "CONFIRMED":
+      return <Badge variant="default">Onaylandı</Badge>;
+    case "PENDING":
+      return <Badge variant="secondary">Beklemede</Badge>;
+    case "CANCELLED":
+      return <Badge variant="destructive">İptal</Badge>;
+    case "DONE":
+      return <Badge variant="outline">Tamamlandı</Badge>;
+    default:
+      return <Badge  variant="secondary">Durum</Badge>;
+  }
 }
+function StatusSpan({ status }: { status: string }) {
+  switch (status) {
+    case "CONFIRMED":
+      return <span >Onaylandı</span>;
+    case "PENDING":
+      return <span >Beklemede</span>;
+    case "CANCELLED":
+      return <span >İptal</span>;
+    case "DONE":
+      return <span>Tamamlandı</span>;
+    default:
+      return <span>Durum</span>;
+  }
+}
+
+
 
 export default function BarberDashboard() {
   const [range, setRange] = useState<AnalyticsRange>("30d");
@@ -68,6 +94,48 @@ export default function BarberDashboard() {
   const [error, setError] = useState<string | null>(null);
   const [busyApptId, setBusyApptId] = useState<string | null>(null);
 
+
+  function formatStatus(status: string) {
+    switch (status) {
+      case "CONFIRMED":
+        return "Onaylandı";
+      case "PENDING":
+        return "Beklemede";
+      case "CANCELLED":
+        return "İptal";
+      case "DONE":
+        return "Tamamlandı";
+      default:
+        return "Durum";
+    }
+  }
+  const meta = rangeMeta(range);
+  const appointments = data?.appointments ?? [];
+  const appointmentsSorted = [...appointments].sort(
+    (a, b) => new Date(b.startAt).getTime() - new Date(a.startAt).getTime()
+  );
+  function rangeMeta(range: "today" | "7d" | "30d") {
+    switch (range) {
+      case "today":
+        return {
+          title: "Bugünün Randevuları",
+          desc: "Bugün gelen randevular aşağıda listelenir",
+          empty: "Bugün randevu yok.",
+        };
+      case "7d":
+        return {
+          title: "Son 7 Gün Randevuları",
+          desc: "Son 7 gündeki randevular aşağıda listelenir",
+          empty: "Son 7 günde randevu yok.",
+        };
+      case "30d":
+        return {
+          title: "Son 30 Gün Randevuları",
+          desc: "Son 30 gündeki randevular aşağıda listelenir",
+          empty: "Son 30 günde randevu yok.",
+        };
+    }
+  }
 
 
   async function load(r: AnalyticsRange) {
@@ -110,11 +178,33 @@ export default function BarberDashboard() {
     return trLong.format(parseYmdToDate(ymd)); // "03 Ocak 2026"
   }
 
+  function formatTimeTR(iso: string) {
+    return new Intl.DateTimeFormat("tr-TR", {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+      timeZone: "Europe/Istanbul",
+    })
+      .format(new Date(iso))
+      .replace(":", ".");
+  }
+
+  function formatDayShortTR(iso: string) {
+    const d = new Date(iso);
+    const date = new Intl.DateTimeFormat("tr-TR", {
+      day: "2-digit",
+      month: "2-digit",
+      timeZone: "Europe/Istanbul",
+    }).format(d);
+    const time = formatTimeTR(iso);
+    return `${date} ${time}`; // örn: 09.01 15.00
+  }
+
 
   function rangeLabel(r: AnalyticsRange) {
-    if (r === "today") return "Today";
-    if (r === "7d") return "Last 7 days";
-    return "Last 30 days";
+    if (r === "today") return "Bu gün";
+    if (r === "7d") return "Son 7 Gün";
+    return "Son 30 gün";
   }
 
   const revenueChartData = useMemo(() => {
@@ -187,6 +277,9 @@ export default function BarberDashboard() {
       data.series.revenueDaily.some((x) => (x.planned ?? 0) > 0 || (x.realized ?? 0) > 0)
     );
 
+
+
+
   return (
     <div className="mx-auto max-w-6xl p-6">
       {/* Header */}
@@ -198,22 +291,27 @@ export default function BarberDashboard() {
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex items-center gap-2">
           <ToggleGroup
             type="single"
             value={range}
             onValueChange={(v) => v && setRange(v as AnalyticsRange)}
           >
-            <ToggleGroupItem value="today">Today</ToggleGroupItem>
-            <ToggleGroupItem value="7d">7d</ToggleGroupItem>
-            <ToggleGroupItem value="30d">30d</ToggleGroupItem>
+            <div className="border rounded-lg">
+
+              <ToggleGroupItem value="today">Günlük</ToggleGroupItem>
+              <ToggleGroupItem value="7d">Haftalık</ToggleGroupItem>
+              <ToggleGroupItem value="30d">Aylık</ToggleGroupItem>
+            </div>
           </ToggleGroup>
 
           <Button variant="outline" onClick={() => load(range)} disabled={loading}>
             Refresh
           </Button>
 
-          <Button onClick={() => alert("V2: Barber creates appointment")}>New appointment</Button>
+          <Button asChild variant="default">
+            <Link to="/book">Müşteri için randevu al</Link>
+          </Button>
           <ManageServicesDialog onChanged={() => load(range)} />
         </div>
       </div>
@@ -241,22 +339,22 @@ export default function BarberDashboard() {
             {/* 1) Revenue (Realized) */}
             <Card>
               <CardHeader>
-                <CardDescription>{rangeLabel(range)} Revenue</CardDescription>
+                <CardDescription>{rangeLabel(range)} Gelir</CardDescription>
                 <CardTitle className="text-2xl">{currencyTRY(rangeRealizedRevenue)}</CardTitle>
               </CardHeader>
               <CardContent className="text-sm text-muted-foreground">
-                {deltaLabel(data.deltas.rangeRealizedRevenueDelta)} vs previous period
+                {deltaLabel(data.deltas.rangeRealizedRevenueDelta)} önceki döneme göre
               </CardContent>
             </Card>
 
             {/* 2) Appointments */}
             <Card>
               <CardHeader>
-                <CardDescription>{rangeLabel(range)} Appointments</CardDescription>
+                <CardDescription>{rangeLabel(range)} Randevular</CardDescription>
                 <CardTitle className="text-2xl">{rangeAppointments}</CardTitle>
               </CardHeader>
               <CardContent className="text-sm text-muted-foreground">
-                {deltaLabel(data.deltas.rangeAppointments)} vs previous period
+                {deltaLabel(data.deltas.rangeAppointments)} önceki döneme göre
               </CardContent>
             </Card>
 
@@ -267,7 +365,7 @@ export default function BarberDashboard() {
                 <CardTitle className="text-2xl">{currencyTRY(data.kpis.monthRevenue)}</CardTitle>
               </CardHeader>
               <CardContent className="text-sm text-muted-foreground">
-                {deltaLabel(data.deltas.monthRevenue)} vs last month
+                {deltaLabel(data.deltas.monthRevenue)} Geçen ay
               </CardContent>
             </Card>
 
@@ -278,7 +376,7 @@ export default function BarberDashboard() {
                 <CardTitle className="text-2xl">{percent(data.kpis.cancelRate30d)}</CardTitle>
               </CardHeader>
               <CardContent className="text-sm text-muted-foreground">
-                {deltaLabel(data.deltas.cancelRate30d)} vs prev 30d
+                {deltaLabel(data.deltas.cancelRate30d)} geçmiş 30 güne kıyasla
               </CardContent>
             </Card>
           </>
@@ -291,7 +389,7 @@ export default function BarberDashboard() {
       <div className="mt-6 grid gap-4 lg:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>Revenue ({rangeLabel(range)})</CardTitle>
+            <CardTitle>Gelir ({rangeLabel(range)})</CardTitle>
             <CardDescription>Gelir trendi</CardDescription>
           </CardHeader>
 
@@ -358,7 +456,7 @@ export default function BarberDashboard() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Status distribution</CardTitle>
+            <CardTitle>Durum Dağılımı</CardTitle>
             <CardDescription>Seçili aralıkta durum dağılımı</CardDescription>
           </CardHeader>
           <CardContent>
@@ -373,9 +471,9 @@ export default function BarberDashboard() {
                 <div className="h-64">
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
-                      <Pie data={statusPieData} dataKey="value" nameKey="name" outerRadius={90}>
+                      <Pie data={statusPieData} dataKey="value" nameKey="name" outerRadius={100}>
                         {statusPieData.map((s) => (
-                          <Cell key={s.name} fill={statusColor(s.name)} />
+                          <Cell key={s.name} name={formatStatus(s.name)} fill={statusColor(s.name)} />
                         ))}
                       </Pie>
                       <Tooltip />
@@ -388,7 +486,7 @@ export default function BarberDashboard() {
                     <div key={s.name} className="flex items-center justify-between rounded-lg border p-2">
                       <div className="flex items-center gap-2">
                         <span className="inline-block h-2.5 w-2.5 rounded-full" style={{ background: statusColor(s.name) }} />
-                        <span className="text-sm font-medium">{s.name}</span>
+                        <StatusSpan status={s.name} />
                       </div>
                       <Badge variant="secondary">{s.value}</Badge>
                     </div>
@@ -401,18 +499,20 @@ export default function BarberDashboard() {
         </Card>
       </div>
 
-      {/* Today appointments */}
+      {/* History appointments */}
       <Card className="mt-6">
         <CardHeader>
-          <CardTitle>Today appointments</CardTitle>
-          <CardDescription>Bugün gelen randevular</CardDescription>
+          <CardTitle>{meta.title}</CardTitle>
+          <CardDescription>{meta.desc}</CardDescription>
         </CardHeader>
+
         <CardContent>
           {loading || !data ? (
             <Skeleton className="h-52 w-full" />
-          ) : data.todayAppointments.length === 0 ? (
+          ) : (data.appointments?.length ?? 0) === 0 ? (
+
             <div className="rounded-xl border border-dashed p-10 text-center">
-              <div className="text-sm text-muted-foreground">Bugün randevu yok.</div>
+              <div className="text-sm text-muted-foreground">{meta.empty}</div>
               <Button className="mt-4" onClick={() => alert("V2: Create appointment")}>
                 Create appointment
               </Button>
@@ -422,7 +522,7 @@ export default function BarberDashboard() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-24">Saat</TableHead>
+                    <TableHead className="w-32">Zaman</TableHead>
                     <TableHead>Müşteri</TableHead>
                     <TableHead>Hizmet</TableHead>
                     <TableHead className="w-28">Ücret</TableHead>
@@ -432,27 +532,41 @@ export default function BarberDashboard() {
                 </TableHeader>
 
                 <TableBody>
-                  {data.todayAppointments.map((a) => (
+                  {appointmentsSorted.map((a) => (
                     <TableRow key={a.id}>
-                      <TableCell className="font-medium">{a.time}</TableCell>
+                      <TableCell className="font-medium">
+                        {range === "today" ? formatTimeTR(a.startAt) : formatDayShortTR(a.startAt)}
+                        {" → "}
+                        {formatTimeTR(a.endAt)}
+                      </TableCell>
+
                       <TableCell>
                         <div className="font-medium">{a.customerName}</div>
                         <div className="text-xs text-muted-foreground">{a.customerEmail}</div>
                       </TableCell>
+
                       <TableCell>
                         <div className="font-medium">{a.serviceName}</div>
                         <div className="text-xs text-muted-foreground">{a.durationMin} dk</div>
                       </TableCell>
+
                       <TableCell>{a.price == null ? "—" : currencyTRY(a.price)}</TableCell>
-                      <TableCell>
-                        <Badge variant={statusBadgeVariant(a.status)}>{a.status}</Badge>
+
+                      <TableCell className="text-center">
+                        <StatusBadge  status={a.status} />
                       </TableCell>
+
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
                           <Button
                             size="sm"
                             variant="outline"
-                            disabled={busyApptId === a.id || a.status === "CONFIRMED" || a.status === "DONE" || a.status === "CANCELLED"}
+                            disabled={
+                              busyApptId === a.id ||
+                              a.status === "CONFIRMED" ||
+                              a.status === "DONE" ||
+                              a.status === "CANCELLED"
+                            }
                             onClick={() => changeStatus(a.id, "CONFIRMED")}
                           >
                             {busyApptId === a.id ? "..." : "Confirm"}
@@ -475,7 +589,6 @@ export default function BarberDashboard() {
                           >
                             {busyApptId === a.id ? "..." : "Cancel"}
                           </Button>
-
                         </div>
                       </TableCell>
                     </TableRow>
@@ -485,10 +598,9 @@ export default function BarberDashboard() {
             </div>
           )}
 
-          <Separator className="my-4" />
-
           {!loading && data && !hasAnyData && (
             <div className="rounded-xl border border-dashed p-8 text-center">
+              <Separator className="my-4" />
               <div className="text-base font-medium">Henüz veri yok</div>
               <div className="mt-1 text-sm text-muted-foreground">
                 İlk randevular geldikçe dashboard otomatik dolacak.
@@ -503,6 +615,7 @@ export default function BarberDashboard() {
           )}
         </CardContent>
       </Card>
+
     </div>
   );
 }

@@ -48,7 +48,7 @@ export default function Login() {
               type="button"
               onClick={() => setMode("login")}
               className={[
-                "flex-1 rounded-lg py-2 text-sm font-medium transition-colors",
+                "flex-1 rounded-lg py-2 text-sm font-medium transition-all duration-500 ease-in-out",
                 mode === "login"
                   ? "bg-background text-foreground shadow-sm"
                   : "text-muted-foreground hover:text-foreground",
@@ -61,7 +61,7 @@ export default function Login() {
               type="button"
               onClick={() => setMode("register")}
               className={[
-                "flex-1 rounded-lg py-2 text-sm font-medium transition-colors",
+                "flex-1  rounded-lg py-2 text-sm font-medium transition-all duration-500 ease-in-out",
                 mode === "register"
                   ? "bg-background text-foreground shadow-sm"
                   : "text-muted-foreground hover:text-foreground",
@@ -139,6 +139,10 @@ export default function Login() {
           <p className="mt-4 text-center text-xs text-muted-foreground">
             Demo Barber: <b className="text-foreground">barber@demo.com</b> /{" "}
             <b className="text-foreground">123456</b>
+          </p>
+          <p className="mt-4 text-center text-xs text-muted-foreground">
+            User Test: <b className="text-foreground">user@test.com</b> /{" "}
+            <b className="text-foreground">user123</b>
           </p>
         </div>
       </div>

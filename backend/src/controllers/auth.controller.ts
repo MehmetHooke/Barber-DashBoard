@@ -9,18 +9,19 @@ export async function register(req: Request, res: Response) {
   const parsed = registerSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json(parsed.error.format());
 
-  const { name, email, password } = parsed.data;
+  const { name, surname, phoneNumber, email, password } = parsed.data;
 
   // 2) email unique mi?
   const existing = await prisma.user.findUnique({ where: { email } });
-  if (existing) return res.status(409).json({ message: "Email already in use" });
+  if (existing)
+    return res.status(409).json({ message: "Email already in use" });
 
   // 3) password'u hashle
   const passwordHash = await hashPassword(password);
 
   // 4) kullanıcıyı DB'ye kaydet
   const user = await prisma.user.create({
-    data: { name, email, passwordHash },
+    data: { name, surname, phoneNumber, email, passwordHash },
   });
 
   // 5) token üret ve dön
@@ -47,4 +48,3 @@ export async function login(req: Request, res: Response) {
   const token = signToken({ sub: user.id, role: user.role });
   return res.json({ token });
 }
-
