@@ -118,7 +118,7 @@ export default function AppointmentDetailsModal({
               </div>
             </div>
 
-            <Badge variant={statusVariant(status)}>
+            <Badge  variant={statusVariant(status)}>
               {statusLabel(status)}
             </Badge>
           </div>

@@ -2,6 +2,7 @@
 import * as React from "react";
 import { Link, useNavigate } from "react-router-dom";
 
+
 import { getMyAppointments, cancelAppointment, type Appointment } from "../api/appointments";
 
 import { Button } from "@/components/ui/button";
@@ -15,6 +16,8 @@ import {
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
+import AppointmentDetailsModal from "@/components/AppointmentDetailsModal";
+
 
 type AnyStatus = Appointment["status"];
 
@@ -120,6 +123,29 @@ export default function UserHome() {
   const [appointments, setAppointments] = React.useState<Appointment[]>([]);
   const [cancelingId, setCancelingId] = React.useState<string | null>(null);
 
+  const [detailOpen, setDetailOpen] = React.useState(false);
+  const [selectedAppt, setSelectedAppt] = React.useState<any | null>(null);
+
+  function formatDateTimeTR(iso: string) {
+  const d = new Date(iso);
+
+  // "9 Ocak 2026" kısmı
+  const datePart = new Intl.DateTimeFormat("tr-TR", {
+    day: "numeric",
+    month: "long",
+  }).format(d);
+
+  // "Cuma" kısmı
+  const dayPart = new Intl.DateTimeFormat("tr-TR", {
+    weekday: "long",
+  }).format(d);
+
+  // weekday "cuma" gelirse baş harf büyütmek için:
+  const dayCap = dayPart.charAt(0).toUpperCase() + dayPart.slice(1);
+
+  return `${datePart} ${dayCap}`;
+}
+
   const load = React.useCallback(async () => {
     setError(null);
     setLoading(true);
@@ -213,12 +239,16 @@ export default function UserHome() {
               <Separator />
 
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                <Button variant="default" onClick={() => navigate("/my")}>
-                  Detay
-                </Button>
-                <Button variant="secondary" onClick={() => navigate("/book")}>
-                  Yeniden planla
-                </Button>
+                    <Button
+                      size="lg"
+                      variant="default"
+                      onClick={() => {
+                        setSelectedAppt(upcoming);
+                        setDetailOpen(true);
+                      }}
+                    >
+                      Detay
+                    </Button>
                 <Button
                   variant="outline"
                   onClick={() => handleCancel(upcoming.id)}
@@ -244,7 +274,7 @@ export default function UserHome() {
         </CardContent>
       </Card>
 
- 
+
 
       {/* Recent */}
       <Card className="border-border bg-card">
@@ -272,6 +302,17 @@ export default function UserHome() {
           ) : (
             <div className="text-sm text-muted-foreground">Henüz geçmiş randevu kaydın görünmüyor.</div>
           )}
+
+          <AppointmentDetailsModal
+            open={detailOpen}
+            onOpenChange={(o) => {
+              setDetailOpen(o);
+              if (!o) setSelectedAppt(null);
+            }}
+            appointment={selectedAppt}
+            formatDate={formatDateTimeTR}
+
+          />
         </CardContent>
       </Card>
     </div>
