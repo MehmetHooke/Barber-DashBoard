@@ -1,4 +1,4 @@
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 import Login from "./pages/Login";
 import Home from "./pages/Home";
 import Book from "./pages/Book";
@@ -10,20 +10,12 @@ import Navbar from "./components/Navbar";
 
 export default function App() {
   return (
-    <div className="min-h-screen bg-background/10">
+    <div className="min-h-screen bg-background/10 overflow-x-hidden">
       <Navbar />
 
       <Routes>
+        <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
-
-        <Route
-          path="/"
-          element={
-            <ProtectedRoute>
-              <Home />
-            </ProtectedRoute>
-          }
-        />
 
         <Route
           path="/book"
@@ -33,7 +25,6 @@ export default function App() {
             </ProtectedRoute>
           }
         />
-
         <Route
           path="/my"
           element={
@@ -42,7 +33,6 @@ export default function App() {
             </ProtectedRoute>
           }
         />
-
         <Route
           path="/barber"
           element={
@@ -51,6 +41,8 @@ export default function App() {
             </RoleRoute>
           }
         />
+
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </div>
   );

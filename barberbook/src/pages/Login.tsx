@@ -89,10 +89,19 @@ export default function Login() {
           <form onSubmit={handleSubmit} className="mt-5 space-y-3">
             {isRegister && (
               <div>
-                <label className="text-sm font-medium">Name</label>
+                <label className="text-sm font-medium">İsim</label>
                 <input
                   className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none ring-offset-background transition focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                   placeholder="Mehmet"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  required
+                />
+                <div className="mt-3"></div>
+                <label className="text-sm font-medium ">Soyisim</label>
+                <input
+                  className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none ring-offset-background transition focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  placeholder="Hoke"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   required

@@ -15,10 +15,11 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import GuestHome from "./GuestHome";
 
 function PageShell({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-[calc(100vh-64px)] bg-background text-foreground">
+    <div className="min-h-[calc(100vh-64px)] bg-background text-foreground overflow-x-hidden">
       <div className="mx-auto w-full max-w-6xl px-4 py-8">{children}</div>
     </div>
   );
@@ -42,45 +43,7 @@ function LoadingHome() {
   );
 }
 
-function GuestHome() {
-  return (
-    <PageShell>
-      <div className="space-y-6">
-        <Card className="border-border bg-card">
-          <CardHeader>
-            <CardTitle className="text-2xl md:text-3xl">BarberBook ile randevu almak çok kolay</CardTitle>
-            <CardDescription className="text-muted-foreground">
-              Hizmet seç → saat seç → onayla. Light/Dark tema ile uyumlu.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-3 sm:flex-row sm:items-center">
-            <Button asChild variant="default">
-              <Link to="/book">Randevu Al</Link>
-            </Button>
-            <Button asChild variant="secondary">
-              <Link to="/login">Giriş Yap / Kayıt Ol</Link>
-            </Button>
-          </CardContent>
-        </Card>
 
-        <div className="grid gap-4 md:grid-cols-3">
-          {[
-            { t: "1) Hizmet seç", d: "Saç, sakal, bakım… ihtiyacını belirle." },
-            { t: "2) Saat seç", d: "Uygun saatlerden birini seç ve devam et." },
-            { t: "3) Onayla", d: "Bilgileri kontrol et, randevunu kesinleştir." },
-          ].map((x) => (
-            <Card key={x.t} className="border-border bg-card">
-              <CardHeader>
-                <CardTitle className="text-lg">{x.t}</CardTitle>
-                <CardDescription className="text-muted-foreground">{x.d}</CardDescription>
-              </CardHeader>
-            </Card>
-          ))}
-        </div>
-      </div>
-    </PageShell>
-  );
-}
 
 export default function HomePage() {
   const { user, loading } = useAuth();
@@ -90,13 +53,7 @@ export default function HomePage() {
 
   return (
     <PageShell>
-      {!user ? (
-        <GuestHome />
-      ) : isBarber ? (
-        <BerberHome />
-      ) : (
-        <UserHome />
-      )}
+      {!user ? <GuestHome /> : isBarber ? <BerberHome /> : <UserHome />}
     </PageShell>
   );
 }

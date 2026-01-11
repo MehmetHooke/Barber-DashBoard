@@ -1,6 +1,6 @@
 // src/pages/home/UserHome.tsx
 import * as React from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 
 
 import { getMyAppointments, cancelAppointment, type Appointment } from "../api/appointments";
@@ -18,6 +18,13 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
 import AppointmentDetailsModal from "@/components/AppointmentDetailsModal";
 
+
+import slide1 from "../assets/slider/slide1.jpg";
+import slide2 from "../assets/slider/slide2.jpg";
+import slide3 from "../assets/slider/slide3.jpg";
+import slide4 from "../assets/slider/slide4.jpg";
+import slide5 from "../assets/slider/slide5.jpg";
+import UserHeroCarousel from "@/components/UserHeroCarousel";
 
 type AnyStatus = Appointment["status"];
 
@@ -115,7 +122,6 @@ function ErrorCard({ message, onRetry }: { message: string; onRetry: () => void 
 }
 
 export default function UserHome() {
-  const navigate = useNavigate();
 
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
@@ -202,9 +208,54 @@ export default function UserHome() {
     return <ErrorCard message={error} onRetry={load} />;
   }
 
+  //slider
+  const slides = [
+  {
+    id: "s1",
+    src: slide1,
+    alt: "BarberBook - hızlı randevu",
+    badge: "Hızlı",
+    title: "Bugün uygun saatleri yakala",
+    subtitle: "Seç, saatini belirle, onayla.",
+  },
+  {
+    id: "s2",
+    src: slide2,
+    alt: "Hizmet seçimi",
+    badge: "Hizmet",
+    title: "Saç • Sakal • Bakım",
+    subtitle: "İhtiyacına göre hizmeti seç.",
+  },
+  {
+    id: "s3",
+    src: slide3,
+    alt: "Kolay yönetim",
+    badge: "Kolay",
+    title: "Randevularını yönet",
+    subtitle: "Detay, yeniden planla, iptal et.",
+  },
+    {
+    id: "s4",
+    src: slide4,
+    alt: "Kafa yapınıza uygun saç kesimi",
+    badge: "Estetik",
+    title: "Randevularını yönet",
+    subtitle: "Detay, yeniden planla, iptal et.",
+  },
+    {
+    id: "s5",
+    src: slide5,
+    alt: "Size özel saç kesimi",
+    badge: "Özel",
+    title: "Özel Saç Kesimi",
+    subtitle: "Detay, yeniden planla, iptal et.",
+  },
+];
+
   return (
     <div className="space-y-6">
       {/* Upcoming */}
+      <UserHeroCarousel slides={slides} autoMs={3000} />
       <Card className="border-border bg-card">
         <CardHeader>
           <CardTitle>Yaklaşan randevun</CardTitle>

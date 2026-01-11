@@ -12,3 +12,14 @@ http.interceptors.request.use((config) => {
   }
   return config;
 });
+
+
+http.interceptors.response.use(
+  (res) => res,
+  (error) => {
+    if (error?.response?.status === 401) {
+      localStorage.removeItem("token");
+    }
+    return Promise.reject(error);
+  }
+);
