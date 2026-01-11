@@ -1,16 +1,12 @@
 import "dotenv/config";
 import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
 import { PrismaClient } from "../generated/prisma/client";
+import bcrypt from "bcrypt";
 
 const connectionString = `${process.env.DATABASE_URL}`;
 
 const adapter = new PrismaBetterSqlite3({ url: connectionString });
 const prisma = new PrismaClient({ adapter });
-
-
-import bcrypt from "bcrypt";
-
-
 
 async function main() {
   const email = "barber@demo.com";
@@ -19,9 +15,16 @@ async function main() {
 
   await prisma.user.upsert({
     where: { email },
-    update: { role: "BARBER" },
+    update: {
+      role: "BARBER",
+      // zorunlu alanlar update tarafında da dursun (istersen kaldırabilirsin)
+      surname: "Demo",
+      phoneNumber: "5000000000",
+    },
     create: {
       name: "Demo Barber",
+      surname: "Demo",
+      phoneNumber: "5000000000",
       email,
       passwordHash,
       role: "BARBER",
