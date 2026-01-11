@@ -107,7 +107,7 @@ export default function Navbar() {
                   </Button>
                 </SheetTrigger>
 
-                <SheetContent side="right" className="w-[320px] sm:w-[360px]">
+                <SheetContent side="right" className="w-[320px] sm:w-90">
                   <SheetHeader>
                     <SheetTitle>Menü</SheetTitle>
                   </SheetHeader>

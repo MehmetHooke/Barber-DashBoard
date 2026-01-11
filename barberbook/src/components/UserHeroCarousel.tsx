@@ -93,7 +93,7 @@ export default function UserHeroCarousel({ slides, autoMs = 5000, className }: P
             </div>
 
             {/* overlay */}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
+            <div className="absolute inset-0 bg-linear-to-t from-black/60 via-black/10 to-transparent" />
 
             {/* text + dots */}
             <div className="absolute bottom-3 left-3 right-3 flex items-end justify-between gap-3">
