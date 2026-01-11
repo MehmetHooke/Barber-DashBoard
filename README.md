@@ -66,12 +66,12 @@ Temiz API – UI ayrımı
 
 ## 🖼️ Ekran Görüntüleri
 
-![Berber Dashboard](./public/screenshots/barber-dashboard.png)
-![Misafir Anasayfa](./public/screenshots/guest-home.png)
-![Kullanıcı Anasayfa](./public/screenshots/user-home.png)
-![Randevu Al](./public/screenshots/book.png)
-![Giriş Yapma Ekranı](./public/screenshots/loginPage.png)
-![Prisma DB](./public/screenshots/prismaDB.png)
+![Berber Dashboard](./barberbook/public/screenshots/barber-dashboard.png)
+![Misafir Anasayfa](./barberbook/public/screenshots/guest-home.png)
+![Kullanıcı Anasayfa](./barberbook/public/screenshots/user-home.png)
+![Randevu Al](./barberbook/public/screenshots/book.png)
+![Giriş Yapma Ekranı](./barberbook/public/screenshots/loginPage.png)
+![Prisma DB](./barberbook/public/screenshots/prismaDB.png)
 
 
 
@@ -158,4 +158,5 @@ rol bazlı UI/UX tasarımı sergilemek
 amacıyla geliştirilmiştir.
 
 Tamamen portfolio ve öğrenme odaklıdır, ancak gerçek bir SaaS mimarisine yakındır.
+
 
