@@ -66,12 +66,12 @@ Temiz API – UI ayrımı
 
 ## 🖼️ Ekran Görüntüleri
 
-![Berber Dashboard](./barberbook/public/screenshots/barber-dashboard.png)
-![Misafir Anasayfa](./barberbook/public/screenshots/guest-home.png)
-![Kullanıcı Anasayfa](./barberbook/public/screenshots/user-home.png)
-![Randevu Al](./barberbook/public/screenshots/book.png)
-![Giriş Yapma Ekranı](./barberbook/public/screenshots/loginPage.png)
-![Prisma DB](./barberbook/public/screenshots/prismaDB.png)
+![Berber Dashboard](./public/screenshots/barber-dashboard.png)
+![Misafir Anasayfa](./public/screenshots/guest-home.png)
+![Kullanıcı Anasayfa](./public/screenshots/user-home.png)
+![Randevu Al](./public/screenshots/book.png)
+![Giriş Yapma Ekranı](./public/screenshots/loginPage.png)
+![Prisma DB](./public/screenshots/prismaDB.png)
 
 
 
@@ -126,26 +126,29 @@ API servisleri UI’dan ayrıldı
 UI state ↔ backend state senkron
 
 ⚙️ Kurulum
+
+Lütfen projeyi kurarken. Prisma Quickstarted SQLite3 makalesinden kuruluma göz atın.
 # Frontend
-git clone https://github.com/USERNAME/barberbook.git
+```txt
+git clone https://github.com/mehmethooke/barberbook.git
 cd barberbook
 npm install
 npm run dev
-
+```
 # Backend
 ```txt
 cd backend
 npm install
 npx prisma migrate dev
 npm run dev
-``` 
+```
 
 # .env örneği:
-```txt
+
 DATABASE_URL=postgresql://...
 JWT_SECRET=your_secret
 PORT=your_port
-```
+
 🎯 Projenin Amacı
 
 Bu proje;
