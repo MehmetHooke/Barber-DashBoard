@@ -11,15 +11,6 @@ import { Button } from "@/components/ui/button";
 
 type AppointmentStatus = "PENDING" | "CONFIRMED" | "CANCELLED" | "DONE";
 
-type AppointmentForModal = {
-    id: string;
-    service: {
-        name: string;
-        durationMin: number;
-        price: number | null;
-        status: AppointmentStatus;
-    };
-};
 
 function statusLabel(status: AppointmentStatus) {
     switch (status) {
@@ -49,9 +40,7 @@ function statusVariant(status: AppointmentStatus) {
             return "outline" as const;
     }
 }
-function currencyTRY(n: number) {
-    return new Intl.NumberFormat("tr-TR", { style: "currency", currency: "TRY" }).format(n);
-}
+
 
 export default function AppointmentDetailsModal({
   open,
