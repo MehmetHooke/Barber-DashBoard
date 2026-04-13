@@ -1,18 +1,15 @@
 // src/pages/HomePage.tsx
 import * as React from "react";
-import { Link } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 
 import UserHome from "./UserHome";
 import BerberHome from "./BerberHome";
 
-import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
-  CardTitle,
+
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import GuestHome from "./GuestHome";
